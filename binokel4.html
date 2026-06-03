@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Binokel Profi-Zähler</title>
+    <style>
+        body {
+            background-color: #121214;
+            color: #e2e2e6;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 15px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1 { text-align: center; color: #fff; margin-bottom: 15px; font-size: 24px; }
+        
+        /* SPIELSTAND & AKTUELLER REIZWERT */
+        .header-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #121214;
+            padding-bottom: 10px;
+        }
+        .score-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .team-card {
+            background-color: #1a1a1e;
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .team-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .total-score { font-size: 32px; font-weight: bold; }
+        .score-wir { color: #0a84ff; border-top: 5px solid #0a84ff; }
+        .score-die { color: #ff9f0a; border-top: 5px solid #ff9f0a; }
+        
+        .current-bid-display {
+            background-color: #1a1a1e;
+            border-radius: 10px;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            color: #aeaeae;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* PHASEN BOXEN */
+        .phase-card {
+            background-color: #1a1a1e;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .phase-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #aeaeae;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #3a3a42;
+            padding-bottom: 5px;
+        }
+        
+        .flex-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        label { font-size: 15px; display: block; margin-bottom: 4px; }
+        select, input[type="number"], input[type="text"] {
+            background: #2a2a30; border: 2px solid #3a3a42; color: white;
+            padding: 10px; border-radius: 10px; font-size: 16px; text-align: center;
+            width: 100%; box-sizing: border-box;
+        }
+        input[type="text"] { text-align: left; padding-left: 12px; }
+        
+        .btn {
+            background-color: #30d158; color: black; border: none; padding: 12px;
+            border-radius: 10px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 5px;
+        }
+        .btn:active { background-color: #24a943; transform: scale(0.98); }
+        .btn-blue { background-color: #0a84ff; color: white; }
+        .btn-blue:active { background-color: #0066cc; }
+        .btn-danger { background-color: #ff453a; color: white; }
+        .btn-danger:active { background-color: #d1342c; }
+        .btn-purple { background-color: #af52de; color: white; }
+        .btn-purple:active { background-color: #893baf; }
+        
+        .info-box {
+            background-color: rgba(10, 132, 255, 0.15);
+            border: 1px solid #0a84ff;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            margin: 15px 0;
+            font-size: 15px;
+        }
+        
+        .result-box {
+            padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 16px; margin-top: 10px;
+        }
+        .success { background-color: rgba(48, 209, 88, 0.2); color: #30d158; }
+        .fail { background-color: rgba(255, 69, 58, 0.2); color: #ff453a; }
+        
+        .history { background-color: #1a1a1e; border-radius: 16px; padding: 15px; }
+        .history-row {
+            display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0;
+            border-bottom: 1px solid #2a2a30;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Binokel Rechner</h1>
+
+    <div class="header-sticky">
+        <div class="score-board">
+            <div class="team-card score-wir">
+                <div class="team-title" id="lblScoreWir">Team 1</div>
+                <div class="total-score" id="scoreWir">0</div>
+            </div>
+            <div class="team-card score-die">
+                <div class="team-title" id="lblScoreDie">Team 2</div>
+                <div class="total-score" id="scoreDie">0</div>
+            </div>
+        </div>
+
+        <div class="current-bid-display" id="bidDisplay">Kein aktives Spiel</div>
+    </div>
+
+    <div class="phase-card" id="p0">
+        <div class="phase-title">Namen vergeben</div>
+        <div class="grid-2" style="margin-bottom: 15px;">
+            <div>
+                <label style="color:#0a84ff;">Name Team 1:</label>
+                <input type="text" id="nameTeamWir" value="Wir" placeholder="z.B. Wir">
+            </div>
+            <div>
+                <label style="color:#ff9f0a;">Name Team 2:</label>
+                <input type="text" id="nameTeamDie" value="Die" placeholder="z.B. Die">
+            </div>
+        </div>
+        <button class="btn btn-blue" onclick="saveNamesAndStart()">Spiel starten</button>
+    </div>
+
+    <div class="phase-card" id="p1" style="display:none;">
+        <div class="phase-title">1. Wer hat das Spiel?</div>
+        <div class="flex-row">
+            <select id="gameOwner">
+                </select>
+            <input type="number" id="bidAmount" placeholder="Reizwert (z.B. 200)" pattern="[0-9]*">
+        </div>
+        <button class="btn btn-blue" onclick="goToPhase2()">Weiter zum Melden</button>
+    </div>
+
+    <div class="phase-card" id="p2" style="display:none;">
+        <div class="phase-title">2. Wie viel wurde gemeldet?</div>
+        <div class="grid-2">
+            <div>
+                <label style="color:#0a84ff;" id="lblMeldWir">Melden Team 1:</label>
+                <input type="number" id="meldWir" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+            </div>
+            <div>
+                <label style="color:#ff9f0a;" id="lblMeldDie">Melden Team 2:</label>
+                <input type="number" id="meldDie" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+            </div>
+        </div>
+        
+        <div id="targetSticheBox" class="info-box" style="display:none;"></div>
+        
+        <button class="btn btn-blue" style="margin-top: 5px;" onclick="goToPhase3()">Zu den normalen Stichen</button>
+        
+        <div style="border-top: 1px solid #3a3a42; margin-top: 15px; padding-top: 10px;">
+            <label style="font-size: 13px; color: #aeaeae; display: block; margin-bottom: 5px; text-align: center;">Sonder-Ansagen (Kein Melden / Stiche zählen):</label>
+            <div class="grid-2">
+                <button class="btn btn-purple" onclick="handleSpecialGame('durch')">Durch</button>
+                <button class="btn btn-purple" onclick="handleSpecialGame('untendurch')">Untendurch</button>
+            </div>
+            <button class="btn btn-danger" style="margin-top: 10px;" onclick="handleStotiert()">Spieler stotiert (Einfach Minus + Gegner-Meldung)</button>
+        </div>
+    </div>
+
+    <div class="phase-card" id="p3" style="display:none;">
+        <div class="phase-title">3. Erspielte Augen im Match (Gesamt: 240)</div>
+        <div class="grid-2">
+            <div>
+                <label style="color:#0a84ff;" id="lblSticheWir">Augen Team 1:</label>
+                <input type="number" id="pointsWir" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Wir')">
+            </div>
+            <div>
+                <label style="color:#ff9f0a;" id="lblSticheDie">Augen Team 2:</label>
+                <input type="number" id="pointsDie" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Die')">
+            </div>
+        </div>
+        
+        <div class="flex-row" style="margin-top: 15px; justify-content: space-between;">
+            <label>Wer machte den <strong>letzten Stich</strong> (+10)?</label>
+            <select id="lastStich" style="width: auto;" onchange="recalcBoth()">
+                </select>
+        </div>
+        <button class="btn btn-blue" onclick="calculateResult()">Spiel auswerten</button>
+    </div>
+
+    <div class="phase-card" id="pSpecial" style="display:none;">
+        <div class="phase-title" id="specialTitle">Sonderprüfung</div>
+        <p style="text-align: center; font-size: 18px;" id="specialPrompt">Hat der Spieler es geschafft?</p>
+        <div class="grid-2" style="margin-top: 15px;">
+            <button class="btn btn-success" style="padding: 15px;" onclick="evaluateSpecial(true)">JA, geschafft!</button>
+            <button class="btn btn-danger" style="padding: 15px;" onclick="evaluateSpecial(false)">NEIN, verloren</button>
+        </div>
+    </div>
+
+    <div class="phase-card" id="p4" style="display:none;">
+        <div class="phase-title">4. Rundenergebnis</div>
+        <div id="resultStatus"></div>
+        
+        <div class="grid-2" style="margin-top: 15px; text-align: center;">
+            <div>
+                <span style="color:#0a84ff; font-weight:bold;" id="lblGainWir">Team 1 erhält:</span>
+                <div id="roundGainWir" style="font-size:20px; font-weight:bold; margin-top:5px;">0</div>
+            </div>
+            <div>
+                <span style="color:#ff9f0a; font-weight:bold;" id="lblGainDie">Team 2 erhält:</span>
+                <div id="roundGainDie" style="font-size:20px; font-weight:bold; margin-top:5px;">0</div>
+            </div>
+        </div>
+        <button class="btn" onclick="applyAndReset()">Punkte anschreiben & Nächste Runde</button>
+    </div>
+
+    <div class="history">
+        <div class="phase-title">Rundenverlauf</div>
+        <div id="historyList"></div>
+        <button class="btn" style="background-color: #3a3a42; color: white; margin-top: 15px; font-size: 14px; padding: 8px;" onclick="triggerNewGameSetup()">Neues Spiel starten</button>
+    </div>
+
+    <script>
+        let totalWir = parseInt(localStorage.getItem('bp_wir')) || 0;
+        let totalDie = parseInt(localStorage.getItem('bp_die')) || 0;
+        let history = JSON.parse(localStorage.getItem('bp_history')) || [];
+        
+        let nameWir = localStorage.getItem('bp_name_wir') || "Wir";
+        let nameDie = localStorage.getItem('bp_name_die') || "Die";
+        
+        let roundData = {};
+        let activeSpecialType = '';
+
+        function save() {
+            localStorage.setItem('bp_wir', totalWir);
+            localStorage.setItem('bp_die', totalDie);
+            localStorage.setItem('bp_history', JSON.stringify(history));
+            localStorage.setItem('bp_name_wir', nameWir);
+            localStorage.setItem('bp_name_die', nameDie);
+        }
+
+        function applyNamesToUI() {
+            document.getElementById('lblScoreWir').innerText = nameWir;
+            document.getElementById('lblScoreDie').innerText = nameDie;
+            
+            document.getElementById('lblMeldWir').innerText = "Melden " + nameWir + ":";
+            document.getElementById('lblMeldDie').innerText = "Melden " + nameDie + ":";
+            
+            document.getElementById('lblSticheWir').innerText = "Augen " + nameWir + ":";
+            document.getElementById('lblSticheDie').innerText = "Augen " + nameDie + ":";
+            
+            document.getElementById('lblGainWir').innerText = nameWir + " erhält:";
+            document.getElementById('lblGainDie').innerText = nameDie + " erhält:";
+            
+            const ownerSelect = document.getElementById('gameOwner');
+            ownerSelect.innerHTML = `<option value="Wir">${nameWir}</option><option value="Die">${nameDie}</option>`;
+            
+            const lastStichSelect = document.getElementById('lastStich');
+            lastStichSelect.innerHTML = `<option value="Wir">${nameWir}</option><option value="Die">${nameDie}</option>`;
+        }
+
+        function saveNamesAndStart() {
+            const inputWir = document.getElementById('nameTeamWir').value.trim();
+            const inputDie = document.getElementById('nameTeamDie').value.trim();
+            
+            nameWir = inputWir !== "" ? inputWir : "Wir";
+            nameDie = inputDie !== "" ? inputDie : "Die";
+            
+            save();
+            applyNamesToUI();
+            updateDisplay();
+            
+            document.getElementById('p0').style.display = 'none';
+            document.getElementById('p1').style.display = 'block';
+        }
+
+        function updateDisplay() {
+            document.getElementById('scoreWir').innerText = totalWir;
+            document.getElementById('scoreDie').innerText = totalDie;
+            
+            const histList = document.getElementById('historyList');
+            histList.innerHTML = '';
+            history.forEach((r, idx) => {
+                let statusText = '';
+                if(r.stotiert) statusText = ' - Stotiert (Einfach)';
+                else if(r.special) statusText = ` - ${r.special}`;
+                else if(r.verloren) statusText = ' - Verloren (Doppelt)';
+
+                let displayOwner = (r.owner === 'Wir') ? nameWir : nameDie;
+
+                histList.innerHTML += `
+                    <div class="history-row">
+                        <span>Runde ${idx + 1} (${displayOwner}: ${r.bid}${statusText})</span>
+                        <span style="color:#0a84ff; font-weight:bold;">${r.wir >= 0 ? '+' + r.wir : r.wir}</span>
+                        <span style="color:#ff9f0a; font-weight:bold;">${r.die >= 0 ? '+' + r.die : r.die}</span>
+                    </div>`;
+            });
+        }
+
+        function updateBidDisplay() {
+            const owner = document.getElementById('gameOwner').value;
+            const bid = parseInt(document.getElementById('bidAmount').value) || 0;
+            const inputWir = document.getElementById('meldWir').value;
+            const inputDie = document.getElementById('meldDie').value;
+            
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+            
+            // Prüfen, ob der Spielmacher schon eine Meldung eingetragen hat
+            const activeInput = (owner === 'Wir') ? inputWir : inputDie;
+            
+            if (activeInput !== '' && !isNaN(activeInput)) {
+                document.getElementById('bidDisplay').innerHTML = `Aktuelles Spiel: <strong>${displayName}</strong> spielt für <strong>${bid}</strong> (Gemeldet: <strong>${activeInput}</strong>)`;
+            } else {
+                document.getElementById('bidDisplay').innerHTML = `Aktuelles Spiel: <strong>${displayName}</strong> spielt für <strong>${bid}</strong>`;
+            }
+        }
+
+        function goToPhase2() {
+            const bid = parseInt(document.getElementById('bidAmount').value);
+            if (isNaN(bid) || bid <= 0) { alert("Bitte einen gültigen Reizwert eingeben!"); return; }
+            
+            updateBidDisplay();
+            
+            document.getElementById('p1').style.display = 'none';
+            document.getElementById('p2').style.display = 'block';
+            document.getElementById('targetSticheBox').style.display = 'none';
+        }
+
+        function updateTargetStiche() {
+            const owner = document.getElementById('gameOwner').value;
+            const bid = parseInt(document.getElementById('bidAmount').value) || 0;
+            const inputWir = document.getElementById('meldWir').value;
+            const inputDie = document.getElementById('meldDie').value;
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+            
+            // Aktualisiere auch das obere Header-Display mit der aktuellen Meldung
+            updateBidDisplay();
+            
+            if ((owner === 'Wir' && inputWir === '') || (owner === 'Die' && inputDie === '')) {
+                document.getElementById('targetSticheBox').style.display = 'none';
+                return;
+            }
+
+            const meldWir = parseInt(inputWir) || 0;
+            const meldDie = parseInt(inputDie) || 0;
+            const activeMeldung = (owner === 'Wir') ? meldWir : meldDie;
+            const neededStiche = bid - activeMeldung;
+            const infoBox = document.getElementById('targetSticheBox');
+            
+            infoBox.style.display = 'block';
+            if (neededStiche <= 0) {
+                infoBox.innerHTML = `<strong>${displayName}</strong> hat das Spiel schon durch das Melden gewonnen! <br><span style="font-size:13px;color:#30d158;">(Es muss nur noch mindestens 1 Stich gemacht werden)</span>`;
+            } else if (neededStiche > 250) {
+                infoBox.innerHTML = `<strong>${displayName}</strong> benötigt <span style="color:#ff453a;font-weight:bold;">${neededStiche}</span> Punkte aus Stichen.<br><span style="font-size:13px;color:#ff453a;font-weight:bold;">Das ist mathematisch unmöglich! (Max. 250)</span>`;
+            } else {
+                infoBox.innerHTML = `<strong>${displayName}</strong> benötigt mindestens <span style="color:#0a84ff;font-weight:bold;">${neededStiche}</span> Punkte aus Stichen (inkl. Letzter Stich).`;
+            }
+        }
+
+        function goToPhase3() {
+            document.getElementById('p2').style.display = 'none';
+            document.getElementById('p3').style.display = 'block';
+        }
+
+        function handleSpecialGame(type) {
+            activeSpecialType = type;
+            const owner = document.getElementById('gameOwner').value;
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+            const formattedType = type === 'durch' ? 'Durch' : 'Untendurch';
+            
+            document.getElementById('specialTitle').innerText = `Sonderprüfung: ${formattedType} (${displayName})`;
+            document.getElementById('specialPrompt').innerText = `Hat ${displayName} das ${formattedType} geschafft?`;
+            
+            document.getElementById('p2').style.display = 'none';
+            document.getElementById('pSpecial').style.display = 'block';
+        }
+
+        function evaluateSpecial(success) {
+            const owner = document.getElementById('gameOwner').value;
+            const bid = parseInt(document.getElementById('bidAmount').value) || 0;
+            const value = activeSpecialType === 'durch' ? 1000 : 500;
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+            
+            let gewinnWir = 0;
+            let gewinnDie = 0;
+            let finalValue = success ? value : -value;
+
+            if (owner === 'Wir') {
+                gewinnWir = finalValue;
+                gewinnDie = 0;
+            } else {
+                gewinnDie = finalValue;
+                gewinnWir = 0;
+            }
+
+            const typeLabel = activeSpecialType === 'durch' ? 'Durch' : 'Untendurch';
+            roundData = { wir: gewinnWir, die: gewinnDie, owner: owner, bid: bid, stotiert: false, verloren: !success, special: `${typeLabel} ${success ? 'Erfolgreich' : 'Fehlgeschlagen'}` };
+
+            const statusBox = document.getElementById('resultStatus');
+            if (success) {
+                statusBox.className = "result-box success";
+                statusBox.innerText = `${typeLabel} erfolgreich! ${displayName} verbucht +${value} Punkte.`;
+            } else {
+                statusBox.className = "result-box fail";
+                statusBox.innerText = `${typeLabel} fehlgeschlagen! ${displayName} bekommt -${value} Punkte.`;
+            }
+
+            document.getElementById('roundGainWir').innerText = (gewinnWir >= 0 ? '+' : '') + gewinnWir;
+            document.getElementById('roundGainDie').innerText = (gewinnDie >= 0 ? '+' : '') + gewinnDie;
+
+            document.getElementById('pSpecial').style.display = 'none';
+            document.getElementById('p4').style.display = 'block';
+        }
+
+        function handleStotiert() {
+            const owner = document.getElementById('gameOwner').value;
+            const bid = parseInt(document.getElementById('bidAmount').value) || 0;
+            const meldWir = parseInt(document.getElementById('meldWir').value) || 0;
+            const meldDie = parseInt(document.getElementById('meldDie').value) || 0;
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+
+            let gewinnWir = 0;
+            let gewinnDie = 0;
+
+            if (owner === 'Wir') {
+                gewinnWir = -bid;    
+                gewinnDie = meldDie; 
+            } else {
+                gewinnDie = -bid;    
+                gewinnWir = meldWir; 
+            }
+
+            roundData = { wir: gewinnWir, die: gewinnDie, owner: owner, bid: bid, stotiert: true, verloren: false, special: false };
+
+            const statusBox = document.getElementById('resultStatus');
+            statusBox.className = "result-box fail";
+            statusBox.innerText = `${displayName} ist stotiert (abgegangen)! Gegner schreibt eigene gemeldete Punkte auf. ${displayName} bekommt den einfachen Reizwert (${bid}) abgezogen.`;
+
+            document.getElementById('roundGainWir').innerText = (gewinnWir >= 0 ? '+' : '') + gewinnWir;
+            document.getElementById('roundGainDie').innerText = (gewinnDie >= 0 ? '+' : '') + gewinnDie;
+
+            document.getElementById('p2').style.display = 'none';
+            document.getElementById('p4').style.display = 'block';
+        }
+
+        function calcPoints(changedTeam) {
+            const inputWir = document.getElementById('pointsWir');
+            const inputDie = document.getElementById('pointsDie');
+            
+            if (changedTeam === 'Wir') {
+                let val = parseInt(inputWir.value);
+                if (!isNaN(val) && val <= 240) inputDie.value = 240 - val;
+            } else {
+                let val = parseInt(inputDie.value);
+                if (!isNaN(val) && val <= 240) inputWir.value = 240 - val;
+            }
+        }
+
+        function recalcBoth() {
+            const inputWir = document.getElementById('pointsWir').value;
+            if(inputWir !== "") calcPoints('Wir');
+        }
+
+        function calculateResult() {
+            const owner = document.getElementById('gameOwner').value;
+            const bid = parseInt(document.getElementById('bidAmount').value) || 0;
+            const meldWir = parseInt(document.getElementById('meldWir').value) || 0;
+            const meldDie = parseInt(document.getElementById('meldDie').value) || 0;
+            let sticheWir = parseInt(document.getElementById('pointsWir').value) || 0;
+            let sticheDie = parseInt(document.getElementById('pointsDie').value) || 0;
+            const last = document.getElementById('lastStich').value;
+            const displayName = (owner === 'Wir') ? nameWir : nameDie;
+
+            if (last === 'Wir') sticheWir += 10;
+            else sticheDie += 10;
+
+            let geholtWir = meldWir + sticheWir;
+            let geholtDie = meldDie + sticheDie;
+            
+            let gewinnWir = 0;
+            let gewinnDie = 0;
+            let istErfolgreich = true;
+
+            if (owner === 'Wir') {
+                if (geholtWir >= bid && sticheWir > 0) {
+                    gewinnWir = geholtWir;
+                    gewinnDie = (sticheDie > 0) ? geholtDie : 0; 
+                } else {
+                    gewinnWir = -(bid * 2); 
+                    gewinnDie = (sticheDie > 0) ? geholtDie : 0; 
+                    istErfolgreich = false;
+                }
+            } else { 
+                if (geholtDie >= bid && sticheDie > 0) {
+                    gewinnDie = geholtDie;
+                    gewinnWir = (sticheWir > 0) ? geholtWir : 0;
+                } else {
+                    gewinnDie = -(bid * 2); 
+                    gewinnWir = (sticheWir > 0) ? geholtWir : 0; 
+                    istErfolgreich = false;
+                }
+            }
+
+            roundData = { wir: gewinnWir, die: gewinnDie, owner: owner, bid: bid, stotiert: false, verloren: !istErfolgreich, special: false };
+
+            const statusBox = document.getElementById('resultStatus');
+            if (istErfolgreich) {
+                statusBox.className = "result-box success";
+                statusBox.innerText = `Spiel gewonnen! ${displayName} hat das Ziel (${bid}) mit ${owner === 'Wir' ? geholtWir : geholtDie} Punkten erreicht.`;
+            } else {
+                statusBox.className = "result-box fail";
+                statusBox.innerText = `Spiel im Nachhinein verloren! Ziel (${bid}) verfehlt. ${displayName} bekommt den REIZWERT DOPPELT abgezogen (${bid * 2}). Gegner schreibt normal.`;
+            }
+
+            document.getElementById('roundGainWir').innerText = (gewinnWir >= 0 ? '+' : '') + gewinnWir;
+            document.getElementById('roundGainDie').innerText = (gewinnDie >= 0 ? '+' : '') + gewinnDie;
+
+            document.getElementById('p3').style.display = 'none';
+            document.getElementById('p4').style.display = 'block';
+        }
+
+        function applyAndReset() {
+            totalWir += roundData.wir;
+            totalDie += roundData.die;
+            history.push(roundData);
+            save();
+            updateDisplay();
+
+            document.getElementById('bidAmount').value = '';
+            document.getElementById('meldWir').value = '';
+            document.getElementById('meldDie').value = '';
+            document.getElementById('pointsWir').value = '';
+            document.getElementById('pointsDie').value = '';
+            activeSpecialType = '';
+            document.getElementById('targetSticheBox').style.display = 'none';
+            document.getElementById('bidDisplay').innerText = 'Kein aktives Spiel';
+
+            document.getElementById('p4').style.display = 'none';
+            document.getElementById('p1').style.display = 'block';
+            document.activeElement.blur();
+        }
+
+        function triggerNewGameSetup() {
+            if (confirm("Gesamtes Match zurücksetzen und neue Namen vergeben?")) {
+                totalWir = 0;
+                totalDie = 0;
+                history = [];
+                
+                document.getElementById('nameTeamWir').value = nameWir;
+                document.getElementById('nameTeamDie').value = nameDie;
+                
+                save();
+                
+                document.getElementById('p1').style.display = 'none';
+                document.getElementById('p2').style.display = 'none';
+                document.getElementById('p3').style.display = 'none';
+                document.getElementById('p4').style.display = 'none';
+                document.getElementById('pSpecial').style.display = 'none';
+                document.getElementById('targetSticheBox').style.display = 'none';
+                document.getElementById('bidDisplay').innerText = 'Kein aktives Spiel';
+                
+                document.getElementById('p0').style.display = 'block';
+            }
+        }
+
+        if(localStorage.getItem('bp_name_wir')) {
+            document.getElementById('p0').style.display = 'none';
+            document.getElementById('p1').style.display = 'block';
+            applyNamesToUI();
+            updateDisplay();
+        } else {
+            document.getElementById('p0').style.display = 'block';
+            document.getElementById('p1').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
