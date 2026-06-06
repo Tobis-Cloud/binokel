@@ -34,7 +34,7 @@
             padding: 20px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 25 rgba(0,0,0,0.5);
             border: 1px solid #3a3a42;
         }
         .modal-card h2 { margin-top: 0; font-size: 20px; text-align: center; color: #fff; }
@@ -148,9 +148,9 @@
     <div id="nameModal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <h2>Spielernamen eingeben</h2>
-            <input type="text" id="inputNameS1" placeholder="Name Spieler 1" value="Spieler 1">
-            <input type="text" id="inputNameS2" placeholder="Name Spieler 2" value="Spieler 2">
-            <input type="text" id="inputNameS3" placeholder="Name Spieler 3" value="Spieler 3">
+            <input type="text" id="inputNameS1" placeholder="Name Spieler 1" value="Spieler 1" oninput="saveCurrentInputs()">
+            <input type="text" id="inputNameS2" placeholder="Name Spieler 2" value="Spieler 2" oninput="saveCurrentInputs()">
+            <input type="text" id="inputNameS3" placeholder="Name Spieler 3" value="Spieler 3" oninput="saveCurrentInputs()">
             <button class="btn btn-blue" onclick="saveNames()">Spiel starten</button>
         </div>
     </div>
@@ -179,12 +179,12 @@
     <div class="phase-card" id="p1">
         <div class="phase-title">1. Wer hat das Spiel?</div>
         <div class="flex-row">
-            <select id="gameOwner">
+            <select id="gameOwner" onchange="saveCurrentInputs()">
                 <option value="S1" id="optS1">Spieler 1</option>
                 <option value="S2" id="optS2">Spieler 2</option>
                 <option value="S3" id="optS3">Spieler 3</option>
             </select>
-            <input type="number" id="bidAmount" placeholder="Reizwert" pattern="[0-9]*">
+            <input type="number" id="bidAmount" placeholder="Reizwert" pattern="[0-9]*" oninput="saveCurrentInputs()">
         </div>
         <button class="btn btn-blue" onclick="goToPhase2()">Weiter zum Melden</button>
     </div>
@@ -194,15 +194,15 @@
         <div class="grid-3">
             <div>
                 <label style="color:#0a84ff;" id="lblMeldS1">S1:</label>
-                <input type="number" id="meldS1" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+                <input type="number" id="meldS1" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#ff9f0a;" id="lblMeldS2">S2:</label>
-                <input type="number" id="meldS2" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+                <input type="number" id="meldS2" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#30d158;" id="lblMeldS3">S3:</label>
-                <input type="number" id="meldS3" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+                <input type="number" id="meldS3" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
             </div>
         </div>
         
@@ -226,21 +226,21 @@
         <div class="grid-3">
             <div>
                 <label style="color:#0a84ff;" id="lblPtsS1">S1 Augen:</label>
-                <input type="number" id="pointsS1" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S1')">
+                <input type="number" id="pointsS1" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S1'); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#ff9f0a;" id="lblPtsS2">S2 Augen:</label>
-                <input type="number" id="pointsS2" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S2')">
+                <input type="number" id="pointsS2" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S2'); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#30d158;" id="lblPtsS3">S3 Augen:</label>
-                <input type="number" id="pointsS3" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S3')">
+                <input type="number" id="pointsS3" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S3'); saveCurrentInputs();">
             </div>
         </div>
         
         <div class="flex-row" style="margin-top: 15px; justify-content: space-between;">
             <label>Wer machte den <strong>letzten Stich</strong> (+10)?</label>
-            <select id="lastStich" style="width: auto;">
+            <select id="lastStich" style="width: auto;" onchange="saveCurrentInputs()">
                 <option value="S1" id="optLastS1">Spieler 1</option>
                 <option value="S2" id="optLastS2">Spieler 2</option>
                 <option value="S3" id="optLastS3">Spieler 3</option>
@@ -291,14 +291,15 @@
         let totalS3 = parseInt(localStorage.getItem('b3_s3')) || 0;
         let history = JSON.parse(localStorage.getItem('b3_history')) || [];
         let playerNames = JSON.parse(localStorage.getItem('b3_names')) || { 'S1': 'Spieler 1', 'S2': 'Spieler 2', 'S3': 'Spieler 3' };
-        let roundData = {};
-        let activeSpecialType = '';
+        let roundData = JSON.parse(localStorage.getItem('b3_roundData')) || {};
+        let activeSpecialType = localStorage.getItem('b3_activeSpecialType') || '';
 
         function checkFirstStart() {
             if (!localStorage.getItem('b3_names')) {
                 document.getElementById('nameModal').style.display = 'flex';
             } else {
                 applyNamesToUI();
+                loadCurrentInputs();
             }
         }
 
@@ -312,6 +313,7 @@
             
             applyNamesToUI();
             document.getElementById('nameModal').style.display = 'none';
+            saveCurrentInputs();
         }
 
         function applyNamesToUI() {
@@ -349,6 +351,89 @@
             localStorage.setItem('b3_history', JSON.stringify(history));
         }
 
+        function saveCurrentInputs() {
+            const inputs = {
+                inputNameS1: document.getElementById('inputNameS1').value,
+                inputNameS2: document.getElementById('inputNameS2').value,
+                inputNameS3: document.getElementById('inputNameS3').value,
+                gameOwner: document.getElementById('gameOwner').value,
+                bidAmount: document.getElementById('bidAmount').value,
+                meldS1: document.getElementById('meldS1').value,
+                meldS2: document.getElementById('meldS2').value,
+                meldS3: document.getElementById('meldS3').value,
+                pointsS1: document.getElementById('pointsS1').value,
+                pointsS2: document.getElementById('pointsS2').value,
+                pointsS3: document.getElementById('pointsS3').value,
+                lastStich: document.getElementById('lastStich').value,
+                activePhase: getActivePhaseId(),
+                bidDisplayHtml: document.getElementById('bidDisplay').innerHTML,
+                targetSticheHtml: document.getElementById('targetSticheBox').innerHTML,
+                targetSticheDisplay: document.getElementById('targetSticheBox').style.display,
+                resultStatusHtml: document.getElementById('resultStatus').innerHTML,
+                resultStatusClass: document.getElementById('resultStatus').className,
+                gainS1: document.getElementById('gainS1').innerText,
+                gainS2: document.getElementById('gainS2').innerText,
+                gainS3: document.getElementById('gainS3').innerText,
+                specialTitle: document.getElementById('specialTitle').innerText,
+                specialPrompt: document.getElementById('specialPrompt').innerText
+            };
+            localStorage.setItem('b3_current_inputs', JSON.stringify(inputs));
+            localStorage.setItem('b3_roundData', JSON.stringify(roundData));
+            localStorage.setItem('b3_activeSpecialType', activeSpecialType);
+        }
+
+        function loadCurrentInputs() {
+            const saved = localStorage.getItem('b3_current_inputs');
+            if (!saved) return;
+            const inputs = JSON.parse(saved);
+
+            document.getElementById('inputNameS1').value = inputs.inputNameS1 || '';
+            document.getElementById('inputNameS2').value = inputs.inputNameS2 || '';
+            document.getElementById('inputNameS3').value = inputs.inputNameS3 || '';
+            document.getElementById('gameOwner').value = inputs.gameOwner || 'S1';
+            document.getElementById('bidAmount').value = inputs.bidAmount || '';
+            document.getElementById('meldS1').value = inputs.meldS1 || '';
+            document.getElementById('meldS2').value = inputs.meldS2 || '';
+            document.getElementById('meldS3').value = inputs.meldS3 || '';
+            document.getElementById('pointsS1').value = inputs.pointsS1 || '';
+            document.getElementById('pointsS2').value = inputs.pointsS2 || '';
+            document.getElementById('pointsS3').value = inputs.pointsS3 || '';
+            document.getElementById('lastStich').value = inputs.lastStich || 'S1';
+            
+            if (inputs.bidDisplayHtml) document.getElementById('bidDisplay').innerHTML = inputs.bidDisplayHtml;
+            if (inputs.targetSticheHtml) document.getElementById('targetSticheBox').innerHTML = inputs.targetSticheHtml;
+            if (inputs.targetSticheDisplay) document.getElementById('targetSticheBox').style.display = inputs.targetSticheDisplay;
+            if (inputs.resultStatusHtml) document.getElementById('resultStatus').innerHTML = inputs.resultStatusHtml;
+            if (inputs.resultStatusClass) document.getElementById('resultStatus').className = inputs.resultStatusClass;
+            if (inputs.gainS1) document.getElementById('gainS1').innerText = inputs.gainS1;
+            if (inputs.gainS2) document.getElementById('gainS2').innerText = inputs.gainS2;
+            if (inputs.gainS3) document.getElementById('gainS3').innerText = inputs.gainS3;
+            if (inputs.specialTitle) document.getElementById('specialTitle').innerText = inputs.specialTitle;
+            if (inputs.specialPrompt) document.getElementById('specialPrompt').innerText = inputs.specialPrompt;
+
+            if (inputs.activePhase) {
+                ['p1', 'p2', 'p3', 'pSpecial', 'p4'].forEach(p => document.getElementById(p).style.display = 'none');
+                document.getElementById(inputs.activePhase).style.display = 'block';
+            }
+        }
+
+        function getActivePhaseId() {
+            if (document.getElementById('p1').style.display !== 'none') return 'p1';
+            if (document.getElementById('p2').style.display !== 'none') return 'p2';
+            if (document.getElementById('p3').style.display !== 'none') return 'p3';
+            if (document.getElementById('pSpecial').style.display !== 'none') return 'pSpecial';
+            if (document.getElementById('p4').style.display !== 'none') return 'p4';
+            return 'p1';
+        }
+
+        function clearCurrentInputs() {
+            localStorage.removeItem('b3_current_inputs');
+            localStorage.removeItem('b3_roundData');
+            localStorage.removeItem('b3_activeSpecialType');
+            roundData = {};
+            activeSpecialType = '';
+        }
+
         function updateDisplay() {
             document.getElementById('scoreS1').innerText = totalS1;
             document.getElementById('scoreS2').innerText = totalS2;
@@ -376,15 +461,14 @@
             if (isNaN(bid) || bid <= 0) { alert("Bitte Reizwert eingeben!"); return; }
             const owner = document.getElementById('gameOwner').value;
             
-            // Initialer Reizwert ohne Meldung
             document.getElementById('bidDisplay').innerHTML = `Aktuell: <strong>${playerNames[owner]}</strong> spielt für <strong>${bid}</strong>`;
             
             document.getElementById('p1').style.display = 'none';
             document.getElementById('p2').style.display = 'block';
             document.getElementById('targetSticheBox').style.display = 'none';
+            saveCurrentInputs();
         }
 
-        // BERECHNUNG DER BENÖTIGTEN STICHPUNKTE & UPDATING DES HEADERS MIT MELDUNG
         function updateTargetStiche() {
             const owner = document.getElementById('gameOwner').value;
             const bid = parseInt(document.getElementById('bidAmount').value) || 0;
@@ -400,7 +484,6 @@
             const needed = bid - meldung;
             const infoBox = document.getElementById('targetSticheBox');
             
-            // Header aktualisieren: Reizwert + Meldung der Person, die das Spiel hat
             document.getElementById('bidDisplay').innerHTML = `Aktuell: <strong>${playerNames[owner]}</strong> spielt für <strong>${bid}</strong> <span style="color:#af52de;">(Meldung: ${meldung})</span>`;
             
             infoBox.style.display = 'block';
@@ -414,6 +497,7 @@
         function goToPhase3() {
             document.getElementById('p2').style.display = 'none';
             document.getElementById('p3').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function calcThreeWayPoints(changed) {
@@ -448,6 +532,7 @@
             document.getElementById('specialPrompt').innerText = `Hat ${playerNames[owner]} es geschafft?`;
             document.getElementById('p2').style.display = 'none';
             document.getElementById('pSpecial').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function evaluateSpecial(success) {
@@ -520,6 +605,7 @@
             document.getElementById('p3').style.display = 'none';
             document.getElementById('pSpecial').style.display = 'none';
             document.getElementById('p4').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function applyAndReset() {
@@ -537,12 +623,14 @@
             document.getElementById('p4').style.display = 'none';
             document.getElementById('p1').style.display = 'block';
             document.activeElement.blur();
+            clearCurrentInputs();
         }
 
         function resetGame() {
             if (confirm("Alles zurücksetzen und neue Namen vergeben?")) {
                 totalS1 = 0; totalS2 = 0; totalS3 = 0; history = [];
                 save();
+                clearCurrentInputs();
                 
                 document.getElementById('p2').style.display = 'none';
                 document.getElementById('p3').style.display = 'none';
