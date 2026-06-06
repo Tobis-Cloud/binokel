@@ -140,11 +140,11 @@
         <div class="grid-2" style="margin-bottom: 15px;">
             <div>
                 <label style="color:#0a84ff;">Name Team 1:</label>
-                <input type="text" id="nameTeamWir" value="Wir" placeholder="z.B. Wir">
+                <input type="text" id="nameTeamWir" value="Wir" placeholder="z.B. Wir" oninput="saveCurrentInputs()">
             </div>
             <div>
                 <label style="color:#ff9f0a;">Name Team 2:</label>
-                <input type="text" id="nameTeamDie" value="Die" placeholder="z.B. Die">
+                <input type="text" id="nameTeamDie" value="Die" placeholder="z.B. Die" oninput="saveCurrentInputs()">
             </div>
         </div>
         <button class="btn btn-blue" onclick="saveNamesAndStart()">Spiel starten</button>
@@ -153,9 +153,9 @@
     <div class="phase-card" id="p1" style="display:none;">
         <div class="phase-title">1. Wer hat das Spiel?</div>
         <div class="flex-row">
-            <select id="gameOwner">
-                </select>
-            <input type="number" id="bidAmount" placeholder="Reizwert (z.B. 200)" pattern="[0-9]*">
+            <select id="gameOwner" onchange="saveCurrentInputs()">
+            </select>
+            <input type="number" id="bidAmount" placeholder="Reizwert (z.B. 200)" pattern="[0-9]*" oninput="saveCurrentInputs()">
         </div>
         <button class="btn btn-blue" onclick="goToPhase2()">Weiter zum Melden</button>
     </div>
@@ -165,11 +165,11 @@
         <div class="grid-2">
             <div>
                 <label style="color:#0a84ff;" id="lblMeldWir">Melden Team 1:</label>
-                <input type="number" id="meldWir" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+                <input type="number" id="meldWir" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#ff9f0a;" id="lblMeldDie">Melden Team 2:</label>
-                <input type="number" id="meldDie" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche()">
+                <input type="number" id="meldDie" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
             </div>
         </div>
         
@@ -192,18 +192,18 @@
         <div class="grid-2">
             <div>
                 <label style="color:#0a84ff;" id="lblSticheWir">Augen Team 1:</label>
-                <input type="number" id="pointsWir" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Wir')">
+                <input type="number" id="pointsWir" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Wir'); saveCurrentInputs();">
             </div>
             <div>
                 <label style="color:#ff9f0a;" id="lblSticheDie">Augen Team 2:</label>
-                <input type="number" id="pointsDie" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Die')">
+                <input type="number" id="pointsDie" placeholder="0" pattern="[0-9]*" oninput="calcPoints('Die'); saveCurrentInputs();">
             </div>
         </div>
         
         <div class="flex-row" style="margin-top: 15px; justify-content: space-between;">
             <label>Wer machte den <strong>letzten Stich</strong> (+10)?</label>
-            <select id="lastStich" style="width: auto;" onchange="recalcBoth()">
-                </select>
+            <select id="lastStich" style="width: auto;" onchange="recalcBoth(); saveCurrentInputs();">
+            </select>
         </div>
         <button class="btn btn-blue" onclick="calculateResult()">Spiel auswerten</button>
     </div>
@@ -248,8 +248,8 @@
         let nameWir = localStorage.getItem('bp_name_wir') || "Wir";
         let nameDie = localStorage.getItem('bp_name_die') || "Die";
         
-        let roundData = {};
-        let activeSpecialType = '';
+        let roundData = JSON.parse(localStorage.getItem('bp_roundData')) || {};
+        let activeSpecialType = localStorage.getItem('bp_activeSpecialType') || '';
 
         function save() {
             localStorage.setItem('bp_wir', totalWir);
@@ -257,6 +257,82 @@
             localStorage.setItem('bp_history', JSON.stringify(history));
             localStorage.setItem('bp_name_wir', nameWir);
             localStorage.setItem('bp_name_die', nameDie);
+        }
+
+        function saveCurrentInputs() {
+            const inputs = {
+                nameTeamWir: document.getElementById('nameTeamWir').value,
+                nameTeamDie: document.getElementById('nameTeamDie').value,
+                gameOwner: document.getElementById('gameOwner').value,
+                bidAmount: document.getElementById('bidAmount').value,
+                meldWir: document.getElementById('meldWir').value,
+                meldDie: document.getElementById('meldDie').value,
+                pointsWir: document.getElementById('pointsWir').value,
+                pointsDie: document.getElementById('pointsDie').value,
+                lastStich: document.getElementById('lastStich').value,
+                activePhase: getActivePhaseId(),
+                bidDisplayHtml: document.getElementById('bidDisplay').innerHTML,
+                targetSticheHtml: document.getElementById('targetSticheBox').innerHTML,
+                targetSticheDisplay: document.getElementById('targetSticheBox').style.display,
+                resultStatusHtml: document.getElementById('resultStatus').innerHTML,
+                resultStatusClass: document.getElementById('resultStatus').className,
+                roundGainWir: document.getElementById('roundGainWir').innerText,
+                roundGainDie: document.getElementById('roundGainDie').innerText,
+                specialTitle: document.getElementById('specialTitle').innerText,
+                specialPrompt: document.getElementById('specialPrompt').innerText
+            };
+            localStorage.setItem('bp_current_inputs', JSON.stringify(inputs));
+            localStorage.setItem('bp_roundData', JSON.stringify(roundData));
+            localStorage.setItem('bp_activeSpecialType', activeSpecialType);
+        }
+
+        function loadCurrentInputs() {
+            const saved = localStorage.getItem('bp_current_inputs');
+            if (!saved) return;
+            const inputs = JSON.parse(saved);
+
+            document.getElementById('nameTeamWir').value = inputs.nameTeamWir || 'Wir';
+            document.getElementById('nameTeamDie').value = inputs.nameTeamDie || 'Die';
+            document.getElementById('gameOwner').value = inputs.gameOwner || 'Wir';
+            document.getElementById('bidAmount').value = inputs.bidAmount || '';
+            document.getElementById('meldWir').value = inputs.meldWir || '';
+            document.getElementById('meldDie').value = inputs.meldDie || '';
+            document.getElementById('pointsWir').value = inputs.pointsWir || '';
+            document.getElementById('pointsDie').value = inputs.pointsDie || '';
+            document.getElementById('lastStich').value = inputs.lastStich || 'Wir';
+            
+            if (inputs.bidDisplayHtml) document.getElementById('bidDisplay').innerHTML = inputs.bidDisplayHtml;
+            if (inputs.targetSticheHtml) document.getElementById('targetSticheBox').innerHTML = inputs.targetSticheHtml;
+            if (inputs.targetSticheDisplay) document.getElementById('targetSticheBox').style.display = inputs.targetSticheDisplay;
+            if (inputs.resultStatusHtml) document.getElementById('resultStatus').innerHTML = inputs.resultStatusHtml;
+            if (inputs.resultStatusClass) document.getElementById('resultStatus').className = inputs.resultStatusClass;
+            if (inputs.roundGainWir) document.getElementById('roundGainWir').innerText = inputs.roundGainWir;
+            if (inputs.roundGainDie) document.getElementById('roundGainDie').innerText = inputs.roundGainDie;
+            if (inputs.specialTitle) document.getElementById('specialTitle').innerText = inputs.specialTitle;
+            if (inputs.specialPrompt) document.getElementById('specialPrompt').innerText = inputs.specialPrompt;
+
+            if (inputs.activePhase) {
+                ['p0', 'p1', 'p2', 'p3', 'pSpecial', 'p4'].forEach(p => document.getElementById(p).style.display = 'none');
+                document.getElementById(inputs.activePhase).style.display = 'block';
+            }
+        }
+
+        function getActivePhaseId() {
+            if (document.getElementById('p0').style.display !== 'none') return 'p0';
+            if (document.getElementById('p1').style.display !== 'none') return 'p1';
+            if (document.getElementById('p2').style.display !== 'none') return 'p2';
+            if (document.getElementById('p3').style.display !== 'none') return 'p3';
+            if (document.getElementById('pSpecial').style.display !== 'none') return 'pSpecial';
+            if (document.getElementById('p4').style.display !== 'none') return 'p4';
+            return 'p1';
+        }
+
+        function clearCurrentInputs() {
+            localStorage.removeItem('bp_current_inputs');
+            localStorage.removeItem('bp_roundData');
+            localStorage.removeItem('bp_activeSpecialType');
+            roundData = {};
+            activeSpecialType = '';
         }
 
         function applyNamesToUI() {
@@ -292,6 +368,7 @@
             
             document.getElementById('p0').style.display = 'none';
             document.getElementById('p1').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function updateDisplay() {
@@ -324,8 +401,6 @@
             const inputDie = document.getElementById('meldDie').value;
             
             const displayName = (owner === 'Wir') ? nameWir : nameDie;
-            
-            // Prüfen, ob der Spielmacher schon eine Meldung eingetragen hat
             const activeInput = (owner === 'Wir') ? inputWir : inputDie;
             
             if (activeInput !== '' && !isNaN(activeInput)) {
@@ -344,6 +419,7 @@
             document.getElementById('p1').style.display = 'none';
             document.getElementById('p2').style.display = 'block';
             document.getElementById('targetSticheBox').style.display = 'none';
+            saveCurrentInputs();
         }
 
         function updateTargetStiche() {
@@ -353,7 +429,6 @@
             const inputDie = document.getElementById('meldDie').value;
             const displayName = (owner === 'Wir') ? nameWir : nameDie;
             
-            // Aktualisiere auch das obere Header-Display mit der aktuellen Meldung
             updateBidDisplay();
             
             if ((owner === 'Wir' && inputWir === '') || (owner === 'Die' && inputDie === '')) {
@@ -380,6 +455,7 @@
         function goToPhase3() {
             document.getElementById('p2').style.display = 'none';
             document.getElementById('p3').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function handleSpecialGame(type) {
@@ -393,6 +469,7 @@
             
             document.getElementById('p2').style.display = 'none';
             document.getElementById('pSpecial').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function evaluateSpecial(success) {
@@ -430,6 +507,7 @@
 
             document.getElementById('pSpecial').style.display = 'none';
             document.getElementById('p4').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function handleStotiert() {
@@ -461,6 +539,7 @@
 
             document.getElementById('p2').style.display = 'none';
             document.getElementById('p4').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function calcPoints(changedTeam) {
@@ -537,6 +616,7 @@
 
             document.getElementById('p3').style.display = 'none';
             document.getElementById('p4').style.display = 'block';
+            saveCurrentInputs();
         }
 
         function applyAndReset() {
@@ -558,6 +638,7 @@
             document.getElementById('p4').style.display = 'none';
             document.getElementById('p1').style.display = 'block';
             document.activeElement.blur();
+            clearCurrentInputs();
         }
 
         function triggerNewGameSetup() {
@@ -565,6 +646,7 @@
                 totalWir = 0;
                 totalDie = 0;
                 history = [];
+                clearCurrentInputs();
                 
                 document.getElementById('nameTeamWir').value = nameWir;
                 document.getElementById('nameTeamDie').value = nameDie;
@@ -583,11 +665,13 @@
             }
         }
 
+        // Initiale Prüfung beim Laden
         if(localStorage.getItem('bp_name_wir')) {
             document.getElementById('p0').style.display = 'none';
             document.getElementById('p1').style.display = 'block';
             applyNamesToUI();
             updateDisplay();
+            loadCurrentInputs();
         } else {
             document.getElementById('p0').style.display = 'block';
             document.getElementById('p1').style.display = 'none';
