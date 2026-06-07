@@ -2,287 +2,501 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Binokel 3-Spieler-Zähler</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Binokel">
+    
+    <link rel="apple-touch-icon" href="Binokel.jpeg">
+    <link rel="icon" type="image/jpeg" href="Binokel.jpeg">
+
     <style>
-        body {
-            background-color: #121214;
-            color: #e2e2e6;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        /* SOFT MODERN NEON DESIGN TOKENS */
+        :root {
+            --bg-black: #050505;
+            
+            /* Pastel Neon Colors */
+            --neon-blue: #3b82f6;
+            --neon-orange: #ff9f0a;
+            --neon-green: #30d158;
+            --neon-purple: #b666ff;
+            --neon-red: #ff6b6b;
+            
+            /* Ambient Glows */
+            --glow-blue: 0 0 15px rgba(59, 130, 246, 0.35), 0 0 35px rgba(59, 130, 246, 0.15);
+            --glow-orange: 0 0 15px rgba(255, 159, 10, 0.35), 0 0 35px rgba(255, 159, 10, 0.15);
+            --glow-green: 0 0 15px rgba(48, 209, 88, 0.35), 0 0 35px rgba(48, 209, 88, 0.15);
+            --glow-purple: 0 0 15px rgba(182, 102, 255, 0.35), 0 0 35px rgba(182, 102, 255, 0.15);
+            --glow-red: 0 0 15px rgba(255, 107, 107, 0.35), 0 0 35px rgba(255, 107, 107, 0.15);
+            
+            --glow-text-purple: 0 0 8px rgba(182, 102, 255, 0.5), 0 0 25px rgba(182, 102, 255, 0.2);
+
+            --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --transition-fast: 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 15px;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-black);
+            color: #ffffff;
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px 10px;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
             user-select: none;
             -webkit-user-select: none;
         }
-        h1 { text-align: center; color: #fff; margin-bottom: 15px; font-size: 24px; }
-        
-        /* OVERLAY FÜR NAMENSEINGABE */
+
+        .ambient-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(182, 102, 255, 0.06) 0%, rgba(59, 130, 246, 0.03) 50%, rgba(0,0,0,0) 80%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 480px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #ffffff;
+            text-shadow: var(--glow-text-purple);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* MODAL OVERLAY (GLASS) */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.85);
+            background: rgba(4, 4, 4, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            box-sizing: border-box;
         }
         .modal-card {
-            background-color: #1a1a1e;
-            border-radius: 16px;
-            padding: 20px;
+            background: rgba(20, 20, 20, 0.6);
+            border-radius: 24px;
+            padding: 2rem;
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 25 rgba(0,0,0,0.5);
-            border: 1px solid #3a3a42;
+            max-width: 380px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
         }
-        .modal-card h2 { margin-top: 0; font-size: 20px; text-align: center; color: #fff; }
-        .modal-card input { margin-bottom: 15px; }
+        .modal-card h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .modal-card input {
+            margin-bottom: 12px;
+        }
 
-        /* SPIELSTAND & AKTUELLER REIZWERT */
+        /* STICKY HEADER */
         .header-sticky {
             position: sticky;
             top: 0;
-            z-index: 10;
-            background-color: #121214;
-            padding-bottom: 10px;
+            z-index: 20;
+            background-color: var(--bg-black);
+            padding-bottom: 12px;
         }
+
         .score-board {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
+
         .team-card {
-            background-color: #1a1a1e;
-            border-radius: 14px;
-            padding: 10px 5px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 12px 6px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all var(--transition-fast);
+        }
+        .team-title {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             overflow: hidden;
         }
-        .team-title { font-size: 14px; font-weight: bold; margin-bottom: 5px; color: #aeaeae; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
-        .total-score { font-size: 24px; font-weight: bold; color: #fff; }
-        .score-s1 { border-top: 5px solid #0a84ff; }
-        .score-s2 { border-top: 5px solid #ff9f0a; }
-        .score-s3 { border-top: 5px solid #30d158; }
+        .total-score {
+            font-size: 1.6rem;
+            font-weight: 200;
+            color: #ffffff;
+        }
         
+        /* Neon Tops for Score Board */
+        .score-s1 { border-top: 3px solid var(--neon-blue); box-shadow: inset 0 4px 12px rgba(59, 130, 246, 0.05); }
+        .score-s2 { border-top: 3px solid var(--neon-orange); box-shadow: inset 0 4px 12px rgba(255, 159, 10, 0.05); }
+        .score-s3 { border-top: 3px solid var(--neon-green); box-shadow: inset 0 4px 12px rgba(48, 209, 88, 0.05); }
+
         .current-bid-display {
-            background-color: #1a1a1e;
-            border-radius: 10px;
-            padding: 8px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 10px;
             text-align: center;
-            font-size: 14px;
-            color: #aeaeae;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
         }
-        
-        /* PHASEN BOXEN */
+        .current-bid-display strong {
+            color: #ffffff;
+        }
+
+        /* CARDS & PHASES */
         .phase-card {
-            background-color: #1a1a1e;
-            border-radius: 16px;
-            padding: 15px;
+            background: rgba(8, 8, 8, 0.45);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 1.5rem;
             margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         }
+
         .phase-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #aeaeae;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #3a3a42;
-            padding-bottom: 5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
         }
-        
-        .flex-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        
-        label { font-size: 13px; display: block; margin-bottom: 4px; text-align: center; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+
+        .flex-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        label {
+            font-size: 0.75rem;
+            display: block;
+            margin-bottom: 6px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* FORM CONTROLS */
         select, input[type="number"], input[type="text"] {
-            background: #2a2a30; border: 2px solid #3a3a42; color: white;
-            padding: 10px; border-radius: 10px; font-size: 15px; text-align: center;
-            width: 100%; box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 1rem;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            transition: all var(--transition-fast);
+            font-family: var(--font-family);
         }
-        
+        select:focus, input:focus {
+            border-color: rgba(182, 102, 255, 0.5);
+            background: rgba(182, 102, 255, 0.04);
+        }
+
+        /* BUTTONS WITH SOFT GLOWS */
         .btn {
-            background-color: #30d158; color: black; border: none; padding: 12px;
-            border-radius: 10px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 5px;
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid rgba(48, 209, 88, 0.5);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all var(--transition-fast);
+            box-shadow: var(--glow-green);
+            text-shadow: 0 0 3px #ffffff;
         }
-        .btn:active { background-color: #24a943; transform: scale(0.98); }
-        .btn-blue { background-color: #0a84ff; color: white; }
-        .btn-blue:active { background-color: #0066cc; }
-        .btn-danger { background-color: #ff453a; color: white; }
-        .btn-danger:active { background-color: #d1342c; }
-        .btn-purple { background-color: #af52de; color: white; }
-        .btn-purple:active { background-color: #893baf; }
-        
+        .btn:hover { background: rgba(48, 209, 88, 0.1); }
+        .btn:active { transform: scale(0.98); }
+
+        .btn-blue {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: var(--glow-blue);
+        }
+        .btn-blue:hover { background: rgba(59, 130, 246, 0.1); }
+
+        .btn-danger {
+            border-color: rgba(255, 107, 107, 0.5);
+            box-shadow: var(--glow-red);
+        }
+        .btn-danger:hover { background: rgba(255, 107, 107, 0.1); }
+
+        .btn-purple {
+            border-color: rgba(182, 102, 255, 0.5);
+            box-shadow: var(--glow-purple);
+        }
+        .btn-purple:hover { background: rgba(182, 102, 255, 0.1); }
+
+        /* BOX INDICATORS */
         .info-box {
-            background-color: rgba(10, 132, 255, 0.15);
-            border: 1px solid #0a84ff;
-            border-radius: 10px;
+            background-color: rgba(59, 130, 246, 0.03);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
             padding: 12px;
             text-align: center;
             margin: 15px 0;
-            font-size: 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
         }
-        
+
         .result-box {
-            padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 16px; margin-top: 10px;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .success { background-color: rgba(48, 209, 88, 0.2); color: #30d158; }
-        .fail { background-color: rgba(255, 69, 58, 0.2); color: #ff453a; }
-        
-        .history { background-color: #1a1a1e; border-radius: 16px; padding: 15px; }
+        .success {
+            background-color: rgba(48, 209, 88, 0.05);
+            border: 1px solid rgba(48, 209, 88, 0.4);
+            color: var(--neon-green);
+            box-shadow: var(--glow-green);
+        }
+        .fail {
+            background-color: rgba(255, 107, 107, 0.05);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+            color: var(--neon-red);
+            box-shadow: var(--glow-red);
+        }
+
+        /* HISTORY */
+        .history {
+            background: rgba(8, 8, 8, 0.45);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
         .history-row {
-            display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0;
-            border-bottom: 1px solid #2a2a30;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.6);
         }
-        .hist-scores { display: flex; gap: 8px; font-weight: bold; }
+        .history-row:last-of-type {
+            border-bottom: none;
+        }
+        .hist-scores {
+            display: flex;
+            gap: 12px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
 
-    <div id="nameModal" class="modal-overlay" style="display:none;">
-        <div class="modal-card">
-            <h2>Spielernamen eingeben</h2>
-            <input type="text" id="inputNameS1" placeholder="Name Spieler 1" value="Spieler 1" oninput="saveCurrentInputs()">
-            <input type="text" id="inputNameS2" placeholder="Name Spieler 2" value="Spieler 2" oninput="saveCurrentInputs()">
-            <input type="text" id="inputNameS3" placeholder="Name Spieler 3" value="Spieler 3" oninput="saveCurrentInputs()">
-            <button class="btn btn-blue" onclick="saveNames()">Spiel starten</button>
-        </div>
-    </div>
+    <div class="ambient-glow"></div>
 
-    <h1>Binokel Rechner (3S)</h1>
-
-    <div class="header-sticky">
-        <div class="score-board">
-            <div class="team-card score-s1">
-                <div class="team-title" id="titleS1">Spieler 1</div>
-                <div class="total-score" id="scoreS1">0</div>
-            </div>
-            <div class="team-card score-s2">
-                <div class="team-title" id="titleS2">Spieler 2</div>
-                <div class="total-score" id="scoreS2">0</div>
-            </div>
-            <div class="team-card score-s3">
-                <div class="team-title" id="titleS3">Spieler 3</div>
-                <div class="total-score" id="scoreS3">0</div>
+    <div class="wrapper">
+        <!-- NAME ENTRY MODAL -->
+        <div id="nameModal" class="modal-overlay" style="display:none;">
+            <div class="modal-card">
+                <h2>Spielernamen</h2>
+                <input type="text" id="inputNameS1" placeholder="Name Spieler 1" value="Spieler 1" oninput="saveCurrentInputs()">
+                <input type="text" id="inputNameS2" placeholder="Name Spieler 2" value="Spieler 2" oninput="saveCurrentInputs()">
+                <input type="text" id="inputNameS3" placeholder="Name Spieler 3" value="Spieler 3" oninput="saveCurrentInputs()">
+                <button class="btn btn-blue" onclick="saveNames()">Spiel starten</button>
             </div>
         </div>
 
-        <div class="current-bid-display" id="bidDisplay">Kein aktives Spiel</div>
-    </div>
+        <h1>Binokel Rechner</h1>
 
-    <div class="phase-card" id="p1">
-        <div class="phase-title">1. Wer hat das Spiel?</div>
-        <div class="flex-row">
-            <select id="gameOwner" onchange="saveCurrentInputs()">
-                <option value="S1" id="optS1">Spieler 1</option>
-                <option value="S2" id="optS2">Spieler 2</option>
-                <option value="S3" id="optS3">Spieler 3</option>
-            </select>
-            <input type="number" id="bidAmount" placeholder="Reizwert" pattern="[0-9]*" oninput="saveCurrentInputs()">
+        <!-- STICKY SCORE BOARD -->
+        <div class="header-sticky">
+            <div class="score-board">
+                <div class="team-card score-s1">
+                    <div class="team-title" id="titleS1">Spieler 1</div>
+                    <div class="total-score" id="scoreS1">0</div>
+                </div>
+                <div class="team-card score-s2">
+                    <div class="team-title" id="titleS2">Spieler 2</div>
+                    <div class="total-score" id="scoreS2">0</div>
+                </div>
+                <div class="team-card score-s3">
+                    <div class="team-title" id="titleS3">Spieler 3</div>
+                    <div class="total-score" id="scoreS3">0</div>
+                </div>
+            </div>
+            <div class="current-bid-display" id="bidDisplay">Kein aktives Spiel</div>
         </div>
-        <button class="btn btn-blue" onclick="goToPhase2()">Weiter zum Melden</button>
-    </div>
 
-    <div class="phase-card" id="p2" style="display:none;">
-        <div class="phase-title">2. Wie viel wurde gemeldet?</div>
-        <div class="grid-3">
-            <div>
-                <label style="color:#0a84ff;" id="lblMeldS1">S1:</label>
-                <input type="number" id="meldS1" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
+        <!-- PHASE 1 -->
+        <div class="phase-card" id="p1">
+            <div class="phase-title">1. Wer hat das Spiel?</div>
+            <div class="flex-row">
+                <select id="gameOwner" onchange="saveCurrentInputs()">
+                    <option value="S1" id="optS1">Spieler 1</option>
+                    <option value="S2" id="optS2">Spieler 2</option>
+                    <option value="S3" id="optS3">Spieler 3</option>
+                </select>
+                <input type="number" id="bidAmount" placeholder="Reizwert" pattern="[0-9]*" oninput="saveCurrentInputs()">
             </div>
-            <div>
-                <label style="color:#ff9f0a;" id="lblMeldS2">S2:</label>
-                <input type="number" id="meldS2" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
-            </div>
-            <div>
-                <label style="color:#30d158;" id="lblMeldS3">S3:</label>
-                <input type="number" id="meldS3" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
-            </div>
+            <button class="btn btn-blue" onclick="goToPhase2()">Weiter zum Melden</button>
         </div>
-        
-        <div id="targetSticheBox" class="info-box" style="display:none;"></div>
-        
-        <button class="btn btn-blue" style="margin-top: 5px;" onclick="goToPhase3()">Zu den Stichen</button>
-        
-        <div style="border-top: 1px solid #3a3a42; margin-top: 15px; padding-top: 10px;">
-            <label style="font-size: 12px; color: #aeaeae; display: block; margin-bottom: 5px;">Sonder-Ansagen:</label>
-            <div class="grid-2">
-                <button class="btn btn-purple" onclick="handleSpecialGame('durch')">Durch</button>
-                <button class="btn btn-purple" onclick="handleSpecialGame('untendurch')">Untendurch</button>
-            </div>
-            <button class="btn btn-danger" style="margin-top: 10px;" onclick="handleStotiert()">Spieler stotiert (Einfach Minus)</button>
-        </div>
-    </div>
 
-    <div class="phase-card" id="p3" style="display:none;">
-        <div class="phase-title">3. Erspielte Augen im Match (Gesamt: 240)</div>
-        <p style="font-size:12px; color:#aeaeae; margin-top:-5px; text-align:center;">Punkte des Einzelspielers ODER der beiden Gegner eingeben.</p>
-        <div class="grid-3">
-            <div>
-                <label style="color:#0a84ff;" id="lblPtsS1">S1 Augen:</label>
-                <input type="number" id="pointsS1" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S1'); saveCurrentInputs();">
+        <!-- PHASE 2 -->
+        <div class="phase-card" id="p2" style="display:none;">
+            <div class="phase-title">2. Wie viel wurde gemeldet?</div>
+            <div class="grid-3">
+                <div>
+                    <label style="color: var(--neon-blue);" id="lblMeldS1">S1:</label>
+                    <input type="number" id="meldS1" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
+                </div>
+                <div>
+                    <label style="color: var(--neon-orange);" id="lblMeldS2">S2:</label>
+                    <input type="number" id="meldS2" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
+                </div>
+                <div>
+                    <label style="color: var(--neon-green);" id="lblMeldS3">S3:</label>
+                    <input type="number" id="meldS3" placeholder="0" pattern="[0-9]*" oninput="updateTargetStiche(); saveCurrentInputs();">
+                </div>
             </div>
-            <div>
-                <label style="color:#ff9f0a;" id="lblPtsS2">S2 Augen:</label>
-                <input type="number" id="pointsS2" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S2'); saveCurrentInputs();">
-            </div>
-            <div>
-                <label style="color:#30d158;" id="lblPtsS3">S3 Augen:</label>
-                <input type="number" id="pointsS3" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S3'); saveCurrentInputs();">
+            
+            <div id="targetSticheBox" class="info-box" style="display:none;"></div>
+            
+            <button class="btn btn-blue" style="margin-top: 10px;" onclick="goToPhase3()">Zu den Stichen</button>
+            
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); margin-top: 18px; padding-top: 12px;">
+                <label style="font-size: 11px; color: rgba(255,255,255,0.3); text-align: left; margin-bottom: 8px;">Sonder-Ansagen:</label>
+                <div class="grid-2">
+                    <button class="btn btn-purple" onclick="handleSpecialGame('durch')">Durch</button>
+                    <button class="btn btn-purple" onclick="handleSpecialGame('untendurch')">Untendurch</button>
+                </div>
+                <button class="btn btn-danger" style="margin-top: 12px;" onclick="handleStotiert()">Spieler stotiert (Einfach Minus)</button>
             </div>
         </div>
-        
-        <div class="flex-row" style="margin-top: 15px; justify-content: space-between;">
-            <label>Wer machte den <strong>letzten Stich</strong> (+10)?</label>
-            <select id="lastStich" style="width: auto;" onchange="saveCurrentInputs()">
-                <option value="S1" id="optLastS1">Spieler 1</option>
-                <option value="S2" id="optLastS2">Spieler 2</option>
-                <option value="S3" id="optLastS3">Spieler 3</option>
-            </select>
-        </div>
-        <button class="btn btn-blue" onclick="calculateResult()">Spiel auswerten</button>
-    </div>
 
-    <div class="phase-card" id="pSpecial" style="display:none;">
-        <div class="phase-title" id="specialTitle">Sonderprüfung</div>
-        <p style="text-align: center; font-size: 18px;" id="specialPrompt">Geschafft?</p>
-        <div class="grid-2" style="margin-top: 15px;">
-            <button class="btn btn-success" style="padding: 15px;" onclick="evaluateSpecial(true)">JA</button>
-            <button class="btn btn-danger" style="padding: 15px;" onclick="evaluateSpecial(false)">NEIN</button>
+        <!-- PHASE 3 -->
+        <div class="phase-card" id="p3" style="display:none;">
+            <div class="phase-title">3. Erspielte Augen im Match (Gesamt: 240)</div>
+            <p style="font-size: 11px; color: rgba(255,255,255,0.3); margin-top:-6px; margin-bottom: 14px; text-align:center;">Augen des Einzelspielers ODER der beiden Gegner eingeben.</p>
+            <div class="grid-3">
+                <div>
+                    <label style="color: var(--neon-blue);" id="lblPtsS1">S1 Augen:</label>
+                    <input type="number" id="pointsS1" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S1'); saveCurrentInputs();">
+                </div>
+                <div>
+                    <label style="color: var(--neon-orange);" id="lblPtsS2">S2 Augen:</label>
+                    <input type="number" id="pointsS2" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S2'); saveCurrentInputs();">
+                </div>
+                <div>
+                    <label style="color: var(--neon-green);" id="lblPtsS3">S3 Augen:</label>
+                    <input type="number" id="pointsS3" placeholder="0" pattern="[0-9]*" oninput="calcThreeWayPoints('S3'); saveCurrentInputs();">
+                </div>
+            </div>
+            
+            <div class="flex-row" style="margin-top: 18px; justify-content: space-between; gap: 5px;">
+                <label style="margin-bottom: 0; text-align: left;">Letzter Stich (+10):</label>
+                <select id="lastStich" style="width: auto; padding: 8px 16px;" onchange="saveCurrentInputs()">
+                    <option value="S1" id="optLastS1">Spieler 1</option>
+                    <option value="S2" id="optLastS2">Spieler 2</option>
+                    <option value="S3" id="optLastS3">Spieler 3</option>
+                </select>
+            </div>
+            <button class="btn btn-blue" style="margin-top: 10px;" onclick="calculateResult()">Spiel auswerten</button>
         </div>
-    </div>
 
-    <div class="phase-card" id="p4" style="display:none;">
-        <div class="phase-title">4. Rundenergebnis</div>
-        <div id="resultStatus"></div>
-        
-        <div class="grid-3" style="margin-top: 15px; text-align: center;">
-            <div>
-                <span style="color:#0a84ff; font-weight:bold; font-size:12px;" id="lblGainS1">S1:</span>
-                <div id="gainS1" style="font-size:18px; font-weight:bold; margin-top:5px;">0</div>
-            </div>
-            <div>
-                <span style="color:#ff9f0a; font-weight:bold; font-size:12px;" id="lblGainS2">S2:</span>
-                <div id="gainS2" style="font-size:18px; font-weight:bold; margin-top:5px;">0</div>
-            </div>
-            <div>
-                <span style="color:#30d158; font-weight:bold; font-size:12px;" id="lblGainS3">S3:</span>
-                <div id="gainS3" style="font-size:18px; font-weight:bold; margin-top:5px;">0</div>
+        <!-- SPECIAL PHASE -->
+        <div class="phase-card" id="pSpecial" style="display:none;">
+            <div class="phase-title" id="specialTitle">Sonderprüfung</div>
+            <p style="text-align: center; font-size: 1.1rem; font-weight: 300; margin: 10px 0;" id="specialPrompt">Geschafft?</p>
+            <div class="grid-2" style="margin-top: 15px;">
+                <button class="btn" style="padding: 14px;" onclick="evaluateSpecial(true)">JA</button>
+                <button class="btn btn-danger" style="padding: 14px;" onclick="evaluateSpecial(false)">NEIN</button>
             </div>
         </div>
-        <button class="btn" onclick="applyAndReset()">Punkte anschreiben</button>
-    </div>
 
-    <div class="history">
-        <div class="phase-title">Rundenverlauf</div>
-        <div id="historyList"></div>
-        <button class="btn" style="background-color: #3a3a42; color: white; margin-top: 15px; font-size: 14px; padding: 8px;" onclick="resetGame()">Neues Spiel starten</button>
+        <!-- PHASE 4 -->
+        <div class="phase-card" id="p4" style="display:none;">
+            <div class="phase-title">4. Rundenergebnis</div>
+            <div id="resultStatus"></div>
+            
+            <div class="grid-3" style="margin-top: 20px; text-align: center;">
+                <div>
+                    <span style="color: var(--neon-blue); font-weight: 600; font-size: 0.75rem;" id="lblGainS1">S1:</span>
+                    <div id="gainS1" style="font-size: 1.2rem; font-weight: 300; margin-top: 4px;">0</div>
+                </div>
+                <div>
+                    <span style="color: var(--neon-orange); font-weight: 600; font-size: 0.75rem;" id="lblGainS2">S2:</span>
+                    <div id="gainS2" style="font-size: 1.2rem; font-weight: 300; margin-top: 4px;">0</div>
+                </div>
+                <div>
+                    <span style="color: var(--neon-green); font-weight: 600; font-size: 0.75rem;" id="lblGainS3">S3:</span>
+                    <div id="gainS3" style="font-size: 1.2rem; font-weight: 300; margin-top: 4px;">0</div>
+                </div>
+            </div>
+            <button class="btn" style="margin-top: 20px;" onclick="applyAndReset()">Punkte anschreiben</button>
+        </div>
+
+        <!-- ROUND HISTORY -->
+        <div class="history">
+            <div class="phase-title">Rundenverlauf</div>
+            <div id="historyList"></div>
+            <button class="reset-btn" onclick="resetGame()">Neues Spiel starten</button>
+        </div>
     </div>
 
     <script>
@@ -448,9 +662,9 @@
                     <div class="history-row">
                         <span>R${idx + 1} (${shortOwner}:${r.bid}${st})</span>
                         <div class="hist-scores">
-                            <span style="color:#0a84ff;">${r.s1 >= 0 ? '+' : ''}${r.s1}</span>
-                            <span style="color:#ff9f0a;">${r.s2 >= 0 ? '+' : ''}${r.s2}</span>
-                            <span style="color:#30d158;">${r.s3 >= 0 ? '+' : ''}${r.s3}</span>
+                            <span style="color: var(--neon-blue);">${r.s1 >= 0 ? '+' : ''}${r.s1}</span>
+                            <span style="color: var(--neon-orange);">${r.s2 >= 0 ? '+' : ''}${r.s2}</span>
+                            <span style="color: var(--neon-green);">${r.s3 >= 0 ? '+' : ''}${r.s3}</span>
                         </div>
                     </div>`;
             });
@@ -484,13 +698,13 @@
             const needed = bid - meldung;
             const infoBox = document.getElementById('targetSticheBox');
             
-            document.getElementById('bidDisplay').innerHTML = `Aktuell: <strong>${playerNames[owner]}</strong> spielt für <strong>${bid}</strong> <span style="color:#af52de;">(Meldung: ${meldung})</span>`;
+            document.getElementById('bidDisplay').innerHTML = `Aktuell: <strong>${playerNames[owner]}</strong> spielt für <strong>${bid}</strong> <span style="color: var(--neon-purple);">(Meldung: ${meldung})</span>`;
             
             infoBox.style.display = 'block';
             if (needed <= 0) {
-                infoBox.innerHTML = `<strong>${playerNames[owner]}</strong> hat gewonnen! <br><span style="font-size:12px;color:#30d158;">(Benötigt nur noch 1 Stich)</span>`;
+                infoBox.innerHTML = `<strong>${playerNames[owner]}</strong> hat gewonnen! <br><span style="font-size:12px;color: var(--neon-green);">(Benötigt nur noch 1 Stich)</span>`;
             } else {
-                infoBox.innerHTML = `<strong>${playerNames[owner]}</strong> benötigt mindestens <span style="color:#0a84ff;font-weight:bold;">${needed}</span> Stichpunkte.`;
+                infoBox.innerHTML = `<strong>${playerNames[owner]}</strong> benötigt mindestens <span style="color: var(--neon-blue);font-weight:600;">${needed}</span> Stichpunkte.`;
             }
         }
 
@@ -583,6 +797,7 @@
             roundData = { s1: 0, s2: 0, s3: 0, owner: owner, bid: bid, stotiert: false, verloren: !gewonnen, special: false };
 
             roundData.s1 = stiche.S1 > 0 ? gesamtS1 : 0;
+            document.getElementById('pointsS1').value;
             roundData.s2 = stiche.S2 > 0 ? gesamtS2 : 0;
             roundData.s3 = stiche.S3 > 0 ? gesamtS3 : 0;
 
